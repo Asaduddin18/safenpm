@@ -33,26 +33,36 @@ export function resolveInstalledPackages(projectRoot: string): InstalledPackage[
     // Skip dot-directories like .bin, .cache, .package-lock.json
     if (entry.name.startsWith('.')) continue
 
-    if (entry.isDirectory()) {
+    // isDirectory() returns false for symlinks (file: local installs on Windows/macOS).
+    // Use isEntryDir() which follows the symlink via fs.statSync.
+    const entryPath = path.join(nodeModules, entry.name)
+    if (isEntryDir(entry, entryPath)) {
       if (entry.name.startsWith('@')) {
         // Scoped package: node_modules/@scope/name
-        const scopeDir = path.join(nodeModules, entry.name)
-        for (const scopedEntry of readDir(scopeDir)) {
-          if (scopedEntry.isDirectory()) {
-            const pkgDir = path.join(scopeDir, scopedEntry.name)
-            const pkg = readPackageJson(pkgDir)
+        for (const scopedEntry of readDir(entryPath)) {
+          const scopedPath = path.join(entryPath, scopedEntry.name)
+          if (isEntryDir(scopedEntry, scopedPath)) {
+            const pkg = readPackageJson(scopedPath)
             if (pkg) results.push(pkg)
           }
         }
       } else {
-        const pkgDir = path.join(nodeModules, entry.name)
-        const pkg = readPackageJson(pkgDir)
+        const pkg = readPackageJson(entryPath)
         if (pkg) results.push(pkg)
       }
     }
   }
 
   return results
+}
+
+/** Returns true if the dirent is a real directory OR a symlink pointing to a directory. */
+function isEntryDir(entry: fs.Dirent, resolvedPath: string): boolean {
+  if (entry.isDirectory()) return true
+  if (entry.isSymbolicLink()) {
+    try { return fs.statSync(resolvedPath).isDirectory() } catch { return false }
+  }
+  return false
 }
 
 function readDir(dir: string): fs.Dirent[] {
