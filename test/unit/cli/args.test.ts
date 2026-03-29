@@ -52,4 +52,26 @@ describe('parseArgs', () => {
     const result = parseArgs(['install', '@aws-sdk/client-s3'])
     expect(result.packages).toEqual(['@aws-sdk/client-s3'])
   })
+
+  it('--yes flag sets autoApprove true', () => {
+    const result = parseArgs(['install', '--yes'])
+    expect(result.command).toBe('install')
+    expect(result.autoApprove).toBe(true)
+  })
+
+  it('-y flag sets autoApprove true', () => {
+    const result = parseArgs(['install', '-y'])
+    expect(result.autoApprove).toBe(true)
+  })
+
+  it('--yes works alongside package names', () => {
+    const result = parseArgs(['install', 'express', '--yes'])
+    expect(result.packages).toEqual(['express'])
+    expect(result.autoApprove).toBe(true)
+  })
+
+  it('autoApprove defaults to false when flag is absent', () => {
+    const result = parseArgs(['install', 'express'])
+    expect(result.autoApprove).toBe(false)
+  })
 })

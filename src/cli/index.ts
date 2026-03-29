@@ -36,7 +36,7 @@ async function main(): Promise<void> {
 
   switch (args.command) {
     case 'install':
-      await runInstall(args.packages)
+      await runInstall(args.packages, { autoApprove: args.autoApprove })
       break
 
     case 'status': {

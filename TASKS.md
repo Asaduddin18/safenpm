@@ -153,3 +153,81 @@ Rule: before moving to next step ALL tests (unit + integration) for the current 
 - [x] **P5.5a** Run `npx vitest run` — 100% pass
 - [x] **P5.5b** Run `npx tsc --noEmit` — zero errors
 - [x] **P5.5c** Update BUILD_LOG.md with all P3/P4/P5 completions
+
+---
+
+## Phase 6 — Interactive Approval CLI
+
+Goal: when `safenpm install` runs, instead of silently writing all-deny profiles,
+it shows each package's capabilities and asks the user to Approve / Edit / Skip / Quit.
+Only packages explicitly approved (A or edited+approved) get `approvedBy: 'user'`.
+
+### P6.1 — Write tests: approval input parser
+- [ ] **P6.1a** Test: 'a', 'A', 'approve' → action 'approve'
+- [ ] **P6.1b** Test: 'e', 'E', 'edit' → action 'edit'
+- [ ] **P6.1c** Test: 's', 'S', 'skip' → action 'skip'
+- [ ] **P6.1d** Test: 'q', 'Q', 'quit' → action 'quit'
+- [ ] **P6.1e** Test: empty string, whitespace, garbage → null (caller must re-prompt)
+- [ ] **P6.1f** Run tests — must FAIL (red)
+
+### P6.2 — Implement approval input parser
+- [ ] **P6.2a** Implement `parseApprovalInput(raw: string): ApprovalAction | null`
+- [ ] **P6.2b** Run P6.1 tests — must PASS (green)
+
+### P6.3 — Write tests: edit-command parser
+- [ ] **P6.3a** Test: 'fs read /tmp/**' → { category:'fs.read', value:'/tmp/**' }
+- [ ] **P6.3b** Test: 'fs write /var/log/**' → { category:'fs.write', value:'/var/log/**' }
+- [ ] **P6.3c** Test: 'net api.stripe.com' → { category:'net', value:'api.stripe.com' }
+- [ ] **P6.3d** Test: 'env NODE_ENV' → { category:'env', value:'NODE_ENV' }
+- [ ] **P6.3e** Test: 'spawn' → { category:'spawn', value: null }
+- [ ] **P6.3f** Test: 'done' → { action:'done' }
+- [ ] **P6.3g** Test: 'reset' → { action:'reset' }
+- [ ] **P6.3h** Test: 'cancel' → { action:'cancel' }
+- [ ] **P6.3i** Test: garbage / empty → { action:'unknown' }
+- [ ] **P6.3j** Run tests — must FAIL (red)
+
+### P6.4 — Implement edit-command parser
+- [ ] **P6.4a** Implement `parseEditCommand(raw: string): EditCommand`
+- [ ] **P6.4b** Run P6.3 tests — must PASS (green)
+
+### P6.5 — Write tests: profile editor (applyEdit)
+- [ ] **P6.5a** Test: 'fs.read' edit adds path to fs.read array
+- [ ] **P6.5b** Test: 'fs.write' edit adds path to fs.write array
+- [ ] **P6.5c** Test: 'net' edit sets net.outbound true and adds host to hosts array
+- [ ] **P6.5d** Test: 'env' edit adds var name to env array
+- [ ] **P6.5e** Test: 'spawn' edit sets child_process.allowed true
+- [ ] **P6.5f** Test: duplicate values are NOT added twice (idempotent)
+- [ ] **P6.5g** Test: reset returns a fresh all-deny profile (clears all edits)
+- [ ] **P6.5h** Run tests — must FAIL (red)
+
+### P6.6 — Implement profile editor
+- [ ] **P6.6a** Implement `applyEdit(profile, editCommand): PackageCapability`
+- [ ] **P6.6b** Implement `resetProfile(name, version): PackageCapability`
+- [ ] **P6.6c** Run P6.5 tests — must PASS (green)
+
+### P6.7 — Write tests: interactive approval runner (mocked I/O)
+- [ ] **P6.7a** Test: user presses 'A' for every package → all written with approvedBy:'user'
+- [ ] **P6.7b** Test: user presses 'S' for a package → that package keeps approvedBy:'auto'
+- [ ] **P6.7c** Test: user presses 'Q' → only packages approved before quit are saved
+- [ ] **P6.7d** Test: user edits (adds net host) then 'done' → profile has net.outbound true
+- [ ] **P6.7e** Test: user types edit then 'cancel' → original all-deny profile kept
+- [ ] **P6.7f** Test: user types edit then 'reset' then 'done' → all-deny profile approved
+- [ ] **P6.7g** Run tests — must FAIL (red)
+
+### P6.8 — Implement interactive approval runner
+- [ ] **P6.8a** Implement `ApprovalIO` interface (write + prompt) — injectable for tests
+- [ ] **P6.8b** Implement `runApprovalSession(packages, profiles, io): Promise<CapabilitiesFile>`
+- [ ] **P6.8c** Implement production `createReadlineIO(): ApprovalIO` using readline
+- [ ] **P6.8d** Run P6.7 tests — must PASS (green)
+
+### P6.9 — Wire approval into CLI install command
+- [ ] **P6.9a** Update `src/cli/install.ts` to call `runApprovalSession` after profiling
+- [ ] **P6.9b** Add `--yes` / `-y` flag to skip interactive mode (auto-approve all)
+- [ ] **P6.9c** Update `src/cli/args.ts` to parse the `--yes` flag
+- [ ] **P6.9d** Write test: `parseArgs(['install', '--yes'])` → `{ autoApprove: true }`
+- [ ] **P6.9e** Run ALL tests — must PASS (green)
+
+### P6.10 — Final verification
+- [ ] **P6.10a** Run `npx vitest run` — 100% pass
+- [ ] **P6.10b** Run `npx tsc --noEmit` — zero errors
+- [ ] **P6.10c** Manual smoke test: run `safenpm install` in sort-api, approve interactively
