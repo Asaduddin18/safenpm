@@ -12,5 +12,13 @@
  */
 
 import { installInterceptor } from './module-interceptor'
+import { installFetchInterceptor } from './fetch-interceptor'
+import { loadCapabilities } from '../capabilities/reader'
 
 installInterceptor()
+
+// Patch globalThis.fetch for Node 18+ — Module._load does not intercept it
+const capabilities = loadCapabilities()
+if (capabilities) {
+  installFetchInterceptor(capabilities)
+}

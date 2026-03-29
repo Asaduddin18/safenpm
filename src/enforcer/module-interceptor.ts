@@ -16,6 +16,7 @@
 import Module from 'module'
 import { loadCapabilities } from '../capabilities/reader'
 import { getCallerPackage, getCallerPackageFromStack } from './caller-resolver'
+import { uninstallFetchInterceptor } from './fetch-interceptor'
 import { createFsShim } from './shims/fs.shim'
 import { createNetShim } from './shims/net.shim'
 import { createHttpShim } from './shims/http.shim'
@@ -102,6 +103,7 @@ export function uninstallInterceptor(): void {
     originalLoad = null
   }
   shimCache.clear()
+  uninstallFetchInterceptor()
 }
 
 /** Strips 'node:' prefix if present (Node 14.18+ supports both forms). */

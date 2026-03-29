@@ -563,8 +563,9 @@ safenpm/
 │   │   ├── reader.ts          # Load package-capabilities.json from disk
 │   │   └── writer.ts          # Write package-capabilities.json to disk
 │   ├── enforcer/
-│   │   ├── index.ts           # Entry point — call installInterceptor() via --require
+│   │   ├── index.ts               # Entry point — installs Module._load + fetch interceptors
 │   │   ├── module-interceptor.ts  # Patches Module._load, routes require() to shims
+│   │   ├── fetch-interceptor.ts   # Patches globalThis.fetch (Node 18+ bypass fix)
 │   │   ├── caller-resolver.ts     # Identifies which npm package made a require() call
 │   │   ├── violation-logger.ts    # Writes violations to log file + stderr
 │   │   └── shims/
@@ -575,6 +576,7 @@ safenpm/
 │   │       ├── https.shim.ts      # Intercepts https.request / https.get
 │   │       ├── dns.shim.ts        # Intercepts DNS lookups + exfiltration detection
 │   │       ├── child-process.shim.ts  # Intercepts exec/spawn/fork
+│   │       ├── fetch.shim.ts      # Wraps globalThis.fetch — enforces net.hosts at call time
 │   │       └── net-helpers.ts     # Shared host resolution and checking logic
 │   ├── profiler/
 │   │   ├── index.ts           # Orchestrator — resolver + native-detector + profile-builder
@@ -605,6 +607,7 @@ safenpm/
 │   │   ├── malicious-dns/     # DNS lookup with base64-encoded exfiltration subdomain
 │   │   ├── malicious-spawn/   # execSync shell command, spawn('sh', ...)
 │   │   ├── malicious-node-prefix/  # Uses require('node:fs') to attempt bypass
+│   │   ├── malicious-fetch/        # Uses globalThis.fetch() — bypasses require() entirely
 │   │   └── legitimate-package/     # Well-behaved package — reads /tmp, reads NODE_ENV
 │   ├── helpers/
 │   │   └── run-with-enforcer.ts    # Integration test helper — spawns child processes
@@ -644,7 +647,7 @@ npm run lint
 ### Test results
 
 ```
-29 test files   349 tests   0 failures
+32 test files   378 tests   0 failures
 ```
 
 Tests are organized by TDD discipline: every test was written before its implementation. Integration tests spawn real child processes with the enforcer loaded via `--require`, verifying end-to-end behaviour against realistic attack fixtures. The interactive approval module (`interactive-approval.ts`) is tested via the injectable `ApprovalIO` interface — no real readline session required.
@@ -668,7 +671,7 @@ Tests are organized by TDD discipline: every test was written before its impleme
 
 - **ESM (`.mjs`) is not intercepted.** The `Module._load` patch only covers CommonJS. ES module interception requires a separate `--experimental-loader` hook (planned).
 
-- **Global `fetch()` is not intercepted.** Node 18+ ships a global `fetch` that bypasses `require()` entirely — a package can make HTTP requests without ever calling `require('http')`. This was confirmed during live testing: `sneaky-sorter` rewritten to use `fetch()` instead of `dns.lookup()` goes undetected. Mitigation requires patching `globalThis.fetch` in the enforcer entry point (planned).
+- **Global `fetch()` is intercepted.** Node 18+ ships a global `fetch` that bypasses `require()` entirely. safenpm patches `globalThis.fetch` on startup so packages that call `fetch()` directly — without ever touching `require('http')` — are still subject to the same `net.hosts` allowlist enforcement. String URLs, `URL` objects, and `Request` objects are all handled.
 
 - **`process.binding()` and `vm.runInNewContext()` are not intercepted.** Advanced bypass vectors that access Node internals directly or evaluate code in a fresh VM context can bypass `Module._load` entirely.
 
@@ -688,7 +691,7 @@ Tests are organized by TDD discipline: every test was written before its impleme
 | `socket.dev` | Static analysis at install time | Can't enforce at runtime |
 | `venv` (Python) | Version isolation only | No capability enforcement |
 | Docker/containers | OS-level isolation | Per-package granularity, heavy setup |
-| **safenpm** | Runtime capability enforcement per package, interactive approval UI | Native addons, ESM, global fetch (in progress) |
+| **safenpm** | Runtime capability enforcement per package, interactive approval UI, global fetch interception | Native addons, ESM |
 
 ---
 
