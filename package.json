@@ -1,0 +1,39 @@
+{
+  "name": "safenpm",
+  "version": "0.1.0",
+  "description": "Behavioral sandbox for npm packages — per-package runtime capability enforcement",
+  "main": "dist/cli/index.js",
+  "bin": {
+    "safenpm": "./dist/cli/index.js"
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "build:watch": "tsc --project tsconfig.json --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:unit": "vitest run test/unit",
+    "test:integration": "vitest run test/integration",
+    "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\"",
+    "lint:fix": "eslint \"src/**/*.ts\" \"test/**/*.ts\" --fix",
+    "dev": "ts-node src/cli/index.ts",
+    "clean": "rimraf dist"
+  },
+  "keywords": ["npm", "security", "sandbox", "supply-chain"],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "@vitest/coverage-v8": "^2.0.0",
+    "eslint": "^8.57.0",
+    "rimraf": "^5.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.4.0",
+    "vitest": "^2.0.0"
+  }
+}

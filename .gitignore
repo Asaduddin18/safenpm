@@ -1,0 +1,8 @@
+node_modules/
+dist/
+coverage/
+*.log
+.safenpm-violations.log
+package-capabilities.json
+.env
+*.tsbuildinfo
